@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app/products";
 
 export const getProducts = async () => {
-  const res = await axios.get(API_URL);
+  const res = await axios.get(API_URL,{withCredentials: true});
   return res.data;
 };
 
