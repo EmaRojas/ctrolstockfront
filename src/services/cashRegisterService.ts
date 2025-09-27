@@ -1,0 +1,45 @@
+// services/cashRegisterService.ts
+import axios from "axios";
+
+const API_URL = "http://localhost:3000/cashRegister"; // 🔁 ajustá el puerto si es distinto
+
+// 🟢 Abrir caja
+export const openCashRegister = async (initialAmount: number, openedBy: string) => {
+    const { data } = await axios.post(`${API_URL}/open`, { initialAmount, openedBy });
+    return data;
+};
+
+// 📊 Obtener caja activa
+export const getActiveCashRegister = async () => {
+    const { data } = await axios.get(`${API_URL}/active`);
+    return data;
+};
+
+// 💸 Registrar movimiento (venta, ingreso, egreso, etc.)
+export const registerMovement = async (type: "ingreso" | "egreso", amount: number, paymentMethod: string, concept: string) => {
+    const { data } = await axios.post(`${API_URL}/movement`, {
+        type,
+        amount,
+        paymentMethod,
+        concept,
+    });
+    return data;
+};
+
+export async function deleteMovement(movementId: string) {
+  const { data } = await axios.delete(`${API_URL}/movement/${movementId}`);
+  return data; // devuelve la caja actualizada
+}
+
+
+// 🔒 Cerrar caja
+export const closeCashRegister = async () => {
+    const { data } = await axios.post(`${API_URL}/close`);
+    return data;
+};
+
+// 📜 Historial
+export const getCashRegisterHistory = async () => {
+    const { data } = await axios.get(`${API_URL}/history`);
+    return data;
+};
