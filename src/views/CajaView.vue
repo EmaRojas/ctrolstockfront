@@ -494,4 +494,54 @@ export default defineComponent({
 .modal-dialog {
   margin-top: 10vh;
 }
+
+.scanner-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.scanner-modal video {
+  width: 90%;
+  max-width: 400px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+}
+
+/* Recuadro animado */
+.scanner-overlay {
+  position: absolute;
+  width: 90%;
+  max-width: 400px;
+  height: 150px;
+  border: 2px solid #00ff00;
+  border-radius: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #00ff00;
+  animation: scanAnim 2s linear infinite;
+  top: 0;
+}
+
+@keyframes scanAnim {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
 </style>
