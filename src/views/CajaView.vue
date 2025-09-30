@@ -337,7 +337,10 @@ export default defineComponent({
       codeReader
         .decodeOnceFromVideoDevice(undefined, this.$refs.videoPreview as HTMLVideoElement)
         .then(result => {
-          this.saleProduct = result.getText();
+          this.saleProduct = this.products.find(
+            (p) =>
+              p.barcode === result.getText()
+          ) || null;
           this.stopScanner();
         })
         .catch(err => console.error("Error al escanear:", err));
@@ -501,7 +504,7 @@ export default defineComponent({
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -540,8 +543,12 @@ export default defineComponent({
 }
 
 @keyframes scanAnim {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
+  0% {
+    top: 0;
+  }
 
+  100% {
+    top: 100%;
+  }
+}
 </style>

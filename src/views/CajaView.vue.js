@@ -94,7 +94,7 @@ export default defineComponent({
             codeReader
                 .decodeOnceFromVideoDevice(undefined, this.$refs.videoPreview)
                 .then(result => {
-                this.saleProduct = result.getText();
+                this.saleProduct = this.products.find((p) => p.barcode === result.getText()) || null;
                 this.stopScanner();
             })
                 .catch(err => console.error("Error al escanear:", err));
