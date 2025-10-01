@@ -191,7 +191,7 @@
             <td>{{ formatCurrency(v.quantity ? v.quantity * v.price : v.total || v.amount) }}</td>
             <td>{{ v.paymentMethod || '-' }}</td>
             <td class="text-center">
-              <button class="btn btn-link text-danger p-1" @click="removeVenta(idx)">
+              <button class="btn btn-link text-danger p-1" @click="removeVenta(v)">
                 <i class="bi bi-trash-fill"></i>
               </button>
             </td>
@@ -275,6 +275,7 @@ import {
 import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.min.css";
 import { BrowserBarcodeReader } from "@zxing/library";
+import { useLoaderStore } from '../stores/loaderStore.js';
 
 export default defineComponent({
   name: "CajaView",
@@ -317,8 +318,11 @@ export default defineComponent({
     };
   },
   async mounted() {
-    this.loadProducts();
+    const loader = useLoaderStore();
+    loader.show();
+    await this.loadProducts();    
     await this.loadTable();
+    loader.hide();
   },
   computed: {
     resumenCaja() {
@@ -567,12 +571,11 @@ export default defineComponent({
     subtotalVenta() {
       return this.saleProduct ? this.saleQuantity * this.saleProduct.price : 0;
     },
-    async removeVenta(idx: number) {
-      const movimiento = this.ventas[idx];
-      if (!movimiento._id) return alert("No se puede eliminar este movimiento");
+    async removeVenta(moviment:any) {
+      if (!moviment._id) return alert("No se puede eliminar este movimiento");
 
       try {
-        const updatedCash = await deleteMovement(movimiento._id);
+        const updatedCash = await deleteMovement(moviment._id);
         this.loadTable();
       } catch (err: any) {
         alert(err.response?.data?.message || "Error al eliminar el movimiento");

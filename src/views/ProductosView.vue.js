@@ -1,6 +1,7 @@
 import { defineComponent, nextTick } from "vue";
 import { BrowserBarcodeReader } from "@zxing/library";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../services/productService";
+import { useLoaderStore } from '../stores/loaderStore.js';
 export default defineComponent({
     name: "ProductosView",
     data() {
@@ -12,8 +13,11 @@ export default defineComponent({
             form: { barcode: "", name: "", price: 0, stock: 0, cost: 0, _id: null },
         };
     },
-    mounted() {
-        this.loadProducts();
+    async mounted() {
+        const loader = useLoaderStore();
+        loader.show();
+        await this.loadProducts();
+        loader.hide();
     },
     methods: {
         async loadProducts() {

@@ -4,6 +4,7 @@ import { openCashRegister, getActiveCashRegister, registerMovement, closeCashReg
 import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.min.css";
 import { BrowserBarcodeReader } from "@zxing/library";
+import { useLoaderStore } from '../stores/loaderStore.js';
 export default defineComponent({
     name: "CajaView",
     components: {
@@ -45,8 +46,11 @@ export default defineComponent({
         };
     },
     async mounted() {
-        this.loadProducts();
+        const loader = useLoaderStore();
+        loader.show();
+        await this.loadProducts();
         await this.loadTable();
+        loader.hide();
     },
     computed: {
         resumenCaja() {
@@ -279,8 +283,8 @@ export default defineComponent({
         subtotalVenta() {
             return this.saleProduct ? this.saleQuantity * this.saleProduct.price : 0;
         },
-        async removeVenta(idx) {
-            const movimiento = this.ventas[idx];
+        async removeVenta(idx, type) {
+            const movimiento = type === "ingreso" ? this.ventas[idx] : this.egresos[idx];
             if (!movimiento._id)
                 return alert("No se puede eliminar este movimiento");
             try {
@@ -869,7 +873,7 @@ if (__VLS_ctx.ventas.length || __VLS_ctx.egresos.length) {
             ...{ onClick: (...[$event]) => {
                     if (!(__VLS_ctx.ventas.length || __VLS_ctx.egresos.length))
                         return;
-                    __VLS_ctx.removeVenta(idx);
+                    __VLS_ctx.removeVenta(idx, v.type);
                     // @ts-ignore
                     [removeVenta,];
                 } },

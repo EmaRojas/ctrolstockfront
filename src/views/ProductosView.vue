@@ -15,15 +15,8 @@
       <form @submit.prevent="saveProduct" class="row g-2">
         <div class="col-12 col-md-6">
           <label class="form-label small">Código de Barra</label>
-          <input
-            ref="barcodeInput"
-            v-model="form.barcode"
-            type="text"
-            class="form-control form-control-sm"
-            placeholder="Ej: 123456789012"
-            :readonly="isMobile()"
-            @focus.prevent="onBarcodeFocus"
-          />
+          <input ref="barcodeInput" v-model="form.barcode" type="text" class="form-control form-control-sm"
+            placeholder="Ej: 123456789012" :readonly="isMobile()" @focus.prevent="onBarcodeFocus" />
         </div>
         <div class="col-12 col-md-6">
           <label class="form-label small">Nombre</label>
@@ -95,11 +88,8 @@
     </table>
 
     <!-- Botón flotante en móviles -->
-    <button
-      v-if="!showForm && isMobile()"
-      class="btn btn-primary btn-float d-flex align-items-center justify-content-center"
-      @click="toggleForm"
-    >
+    <button v-if="!showForm && isMobile()"
+      class="btn btn-primary btn-float d-flex align-items-center justify-content-center" @click="toggleForm">
       <i class="bi bi-plus-lg"></i>
     </button>
   </div>
@@ -109,6 +99,7 @@
 import { defineComponent, nextTick } from "vue";
 import { BrowserBarcodeReader } from "@zxing/library";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../services/productService";
+import { useLoaderStore } from '../stores/loaderStore.js';
 
 export default defineComponent({
   name: "ProductosView",
@@ -121,8 +112,12 @@ export default defineComponent({
       form: { barcode: "", name: "", price: 0, stock: 0, cost: 0, _id: null } as any,
     };
   },
-  mounted() {
-    this.loadProducts();
+  async mounted() {
+    const loader = useLoaderStore();
+    loader.show();
+    await this.loadProducts();
+    loader.hide();
+
   },
   methods: {
     async loadProducts() {
@@ -211,7 +206,7 @@ export default defineComponent({
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -250,8 +245,13 @@ export default defineComponent({
 }
 
 @keyframes scanAnim {
-  0% { top: 0; }
-  100% { top: 100%; }
+  0% {
+    top: 0;
+  }
+
+  100% {
+    top: 100%;
+  }
 }
 
 /* Botón flotante móvil */
