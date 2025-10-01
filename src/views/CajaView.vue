@@ -39,11 +39,8 @@
     <div v-if="showSaleForm" class="mb-4 card p-3 shadow-sm">
       <h5>Registrar Venta por Producto</h5>
       <div class="row g-2 align-items-center">
-        <div class="col-6 col-md-6">
+        <div class="col-12 col-md-3">
           <label for="barcodeInput" class="form-label">Código o Nombre</label>
-          <!-- <input id="barcodeInput" ref="barcodeInput" v-model="saleBarcodeOrName" @input="selectProduct"
-                        type="text" class="form-control form-control-sm" placeholder="Ingrese código o nombre" /> -->
-
           <input v-if="isMobile()" ref="barcodeInput" v-model="saleProduct" type="text"
             class="form-control form-control-sm" placeholder="Ej: 123456789012" :readonly="isMobile()"
             @focus.prevent="onBarcodeFocus" />
@@ -63,6 +60,17 @@
         <div class="col-4 col-md-2">
           <label class="form-label">Subtotal</label>
           <input type="text" :value="subtotalVenta()" readonly class="form-control form-control-sm" />
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Medio de Pago</label>
+          <select v-model="paymentMethod" class="form-select form-select-sm">
+            <option value="" disabled>Seleccione</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="mercadopago">Mercado Pago</option>
+            <option value="qr">QR</option>
+            <option value="otros">Otros</option>
+          </select>
         </div>
         <div class="col-12 d-grid mt-2">
           <button class="btn btn-success btn-sm" @click="addVenta">Agregar</button>
@@ -137,10 +145,6 @@
           <input type="number" v-model.number="egreso.amount" class="form-control form-control-sm" />
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label">Concepto</label>
-          <input type="text" v-model="egreso.concept" class="form-control form-control-sm" />
-        </div>
-        <div class="col-6 col-md-4">
           <label class="form-label">Medio de Pago</label>
           <select v-model="egreso.paymentMethod" class="form-select form-select-sm">
             <option value="" disabled>Seleccione</option>
@@ -150,6 +154,10 @@
             <option value="qr">QR</option>
             <option value="otros">Otros</option>
           </select>
+        </div>
+        <div class="col-6 col-md-4">
+          <label class="form-label">Concepto</label>
+          <input type="text" v-model="egreso.concept" class="form-control form-control-sm" />
         </div>
         <div class="col-12 d-grid mt-2">
           <button class="btn btn-warning btn-sm" @click="addEgreso">Registrar Egreso</button>
@@ -172,7 +180,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(v, idx) in [...ventas, ...egresos]" :key="v._id || idx">
+<tr 
+  v-for="(v, idx) in [...ventas, ...egresos]" 
+  :key="v._id || idx"
+>
             <td>{{ v.name || v.concept }}</td>
             <td>{{ v.date }}</td>
             <td>{{ v.quantity || '-' }}</td>
@@ -234,6 +245,24 @@
 </template>
 
 <script lang="ts">
+// Tipos
+interface Product {
+  barcode: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Movement {
+  _id: string;
+  type: "ingreso" | "egreso";
+  amount?: number;
+  paymentMethod: string;
+  concept: string;
+  date: string;
+  products?: Product[];
+}
+
 import { defineComponent, nextTick } from "vue";
 import { getProducts } from "../services/productService";
 import {
@@ -270,6 +299,7 @@ export default defineComponent({
       saleBarcodeOrName: "",
       saleProduct: null as any,
       saleQuantity: 1,
+      paymentMethod: "",
       products: [] as any[],
       freeSale: {
         date: new Date().toISOString().split("T")[0],
@@ -288,13 +318,7 @@ export default defineComponent({
   },
   async mounted() {
     this.loadProducts();
-    const activeCash = await getActiveCashRegister();
-    if (activeCash) {
-      this.isOpen = true;
-      this.openAmount = activeCash.initialAmount;
-      this.ventas = activeCash.movements.filter((m: any) => m.type === "ingreso");
-      this.egresos = activeCash.movements.filter((m: any) => m.type === "egreso");
-    }
+    await this.loadTable();
   },
   computed: {
     resumenCaja() {
@@ -320,13 +344,66 @@ export default defineComponent({
       }, 0);
     },
     totalEgresos() {
-      return this.egresos.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+      return this.egresos.reduce((sum, e) => sum + (e.price ?? 0), 0);
     },
     cashBalance() {
       return this.openAmount + this.totalVentas - this.totalEgresos;
     },
   },
   methods: {
+    async loadTable() {
+      const activeCash = await getActiveCashRegister();
+      if (activeCash != null) {
+        const ventasProcesadas: any[] = [];
+        const egresosProcesados: any[] = [];
+
+        (activeCash.movements as Movement[]).forEach((m) => {
+          if (m.type === "ingreso") {
+            if (m.products && m.products.length > 0) {
+              m.products.forEach((prod: Product) => {
+                ventasProcesadas.push({
+                  type:"ingreso",
+                  _id: m._id,
+                  name: prod.name,
+                  date: new Date(m.date).toLocaleString(),
+                  quantity: prod.quantity,
+                  price: prod.price,
+                  total: prod.quantity * prod.price,
+                  paymentMethod: m.paymentMethod,
+                  concept: m.concept,
+                });
+              });
+            }
+          }
+
+          if (m.type === "egreso") {
+            if (m.products && m.products.length > 0) {
+              m.products.forEach((prod: Product) => {
+                egresosProcesados.push({
+                  type:"egreso",
+                  _id: m._id,
+                  name: m.concept,
+                  date: new Date(m.date).toLocaleString(),
+                  quantity: prod.quantity,
+                  price: prod.price || 0,
+                  total: m.amount || 0,
+                  paymentMethod: m.paymentMethod,
+                  concept: m.concept,
+                });
+              });
+            }
+          }
+        });
+
+        // Actualizo los arrays del componente
+        this.ventas = ventasProcesadas;
+        this.egresos = egresosProcesados;
+
+        this.isOpen = true;
+        this.openAmount = activeCash.initialAmount;
+      }
+    },
+
     async startScanner() {
       this.scannerVisible = true;
       await nextTick();
@@ -362,6 +439,7 @@ export default defineComponent({
     },
     async loadProducts() {
       this.products = await getProducts();
+      console.log(this.products);
     },
     selectProduct() {
       this.saleProduct = this.products.find(
@@ -369,6 +447,8 @@ export default defineComponent({
           p.barcode === this.saleBarcodeOrName ||
           p.name.toLowerCase() === this.saleBarcodeOrName.toLowerCase()
       ) || null;
+
+      console.log("select", this.saleProduct);
     },
     async abrirCaja() {
       try {
@@ -381,44 +461,67 @@ export default defineComponent({
       }
     },
     async addVenta() {
-      if (!this.saleProduct) return;
+      if (!this.saleProduct) return alert("Debe seleccionar un producto");
       if (this.saleQuantity > this.saleProduct.stock) {
         return alert(`No hay suficiente stock. Disponible: ${this.saleProduct.stock}`);
       }
+      if (!this.paymentMethod) {
+        return alert("Debe seleccionar un medio de pago");
+      }
 
       try {
-        const updatedCash = await registerMovement(
-          "ingreso",
-          this.saleQuantity * this.saleProduct.price,
-          "efectivo",
-          `Venta de ${this.saleProduct.name}`
-        );
+        const saleData = {
+          type: "ingreso",
+          amount: this.saleQuantity * this.saleProduct.price,
+          paymentMethod: this.paymentMethod,
+          concept: `Venta de ${this.saleProduct.name}`,
+          products: [
+            {
+              barcode: this.saleProduct.barcode,
+              name: this.saleProduct.name,
+              quantity: this.saleQuantity,
+              price: this.saleProduct.price
+            }
+          ]
+        };
 
-        this.ventas = updatedCash.movements.filter((m: any) => m.type === "ingreso");
-        this.egresos = updatedCash.movements.filter((m: any) => m.type === "egreso");
+        const updatedCash = await registerMovement(saleData);
 
-        this.saleProduct.stock -= this.saleQuantity;
-        this.saleBarcodeOrName = "";
+        this.loadTable();
+
+        // 🔄 Resetear el formulario
         this.saleProduct = null;
         this.saleQuantity = 1;
+        this.paymentMethod = "";
+
       } catch (err: any) {
         alert(err.response?.data?.message || "Error al registrar la venta");
       }
     },
+
     async addFreeSale() {
-      if (this.freeSale.amount <= 0) return alert("Ingrese un importe válido");
-      if (!this.freeSale.paymentMethod) return alert("Seleccione un medio de pago");
-
       try {
-        const updatedCash = await registerMovement(
-          "ingreso",
-          this.freeSaleTotal,
-          this.freeSale.paymentMethod,
-          this.freeSale.concept || "Venta libre"
-        );
+        if (this.freeSale.amount <= 0) return alert("Ingrese un importe válido");
+        if (!this.freeSale.paymentMethod) return alert("Seleccione un medio de pago");
 
-        this.ventas = updatedCash.movements.filter((m: any) => m.type === "ingreso");
-        this.egresos = updatedCash.movements.filter((m: any) => m.type === "egreso");
+        const saleData = {
+          type: "ingreso",
+          amount: this.freeSaleTotal,
+          paymentMethod: this.freeSale.paymentMethod,
+          concept: this.freeSale.concept || "Venta libre",
+          products: [
+            {
+              barcode: "0000",
+              name: "venta libre",
+              quantity: 1,
+              price: this.freeSaleTotal
+            }
+          ]
+        };
+
+        const updatedCash = await registerMovement(saleData);
+
+        this.loadTable();
 
         this.freeSale.amount = 0;
         this.freeSale.discount = 0;
@@ -434,15 +537,24 @@ export default defineComponent({
       if (!this.egreso.paymentMethod) return alert("Seleccione un medio de pago");
 
       try {
-        const updatedCash = await registerMovement(
-          "egreso",
-          this.egreso.amount,
-          this.egreso.paymentMethod,
-          this.egreso.concept
-        );
+        const saleData = {
+          type: "egreso",
+          amount: this.egreso.amount,
+          paymentMethod: this.egreso.paymentMethod,
+          concept: this.egreso.concept || "egreso",
+          products: [
+            {
+              barcode: "1111",
+              name: this.egreso.concept || "egreso",
+              quantity: 1,
+              price: this.egreso.amount
+            }
+          ]
+        };
 
-        this.ventas = updatedCash.movements.filter((m: any) => m.type === "ingreso");
-        this.egresos = updatedCash.movements.filter((m: any) => m.type === "egreso");
+        const updatedCash = await registerMovement(saleData);
+
+        this.loadTable();
 
         this.egreso.amount = 0;
         this.egreso.paymentMethod = "";
@@ -461,8 +573,7 @@ export default defineComponent({
 
       try {
         const updatedCash = await deleteMovement(movimiento._id);
-        this.ventas = updatedCash.movements.filter((m: any) => m.type === "ingreso");
-        this.egresos = updatedCash.movements.filter((m: any) => m.type === "egreso");
+        this.loadTable();
       } catch (err: any) {
         alert(err.response?.data?.message || "Error al eliminar el movimiento");
       }

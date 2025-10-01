@@ -27,6 +27,7 @@ export default defineComponent({
             saleBarcodeOrName: "",
             saleProduct: null,
             saleQuantity: 1,
+            paymentMethod: "",
             products: [],
             freeSale: {
                 date: new Date().toISOString().split("T")[0],
@@ -45,13 +46,7 @@ export default defineComponent({
     },
     async mounted() {
         this.loadProducts();
-        const activeCash = await getActiveCashRegister();
-        if (activeCash) {
-            this.isOpen = true;
-            this.openAmount = activeCash.initialAmount;
-            this.ventas = activeCash.movements.filter((m) => m.type === "ingreso");
-            this.egresos = activeCash.movements.filter((m) => m.type === "egreso");
-        }
+        await this.loadTable();
     },
     computed: {
         resumenCaja() {
@@ -79,13 +74,61 @@ export default defineComponent({
             }, 0);
         },
         totalEgresos() {
-            return this.egresos.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+            return this.egresos.reduce((sum, e) => sum + (e.price ?? 0), 0);
         },
         cashBalance() {
             return this.openAmount + this.totalVentas - this.totalEgresos;
         },
     },
     methods: {
+        async loadTable() {
+            const activeCash = await getActiveCashRegister();
+            if (activeCash != null) {
+                const ventasProcesadas = [];
+                const egresosProcesados = [];
+                activeCash.movements.forEach((m) => {
+                    if (m.type === "ingreso") {
+                        if (m.products && m.products.length > 0) {
+                            m.products.forEach((prod) => {
+                                ventasProcesadas.push({
+                                    type: "ingreso",
+                                    _id: m._id,
+                                    name: prod.name,
+                                    date: new Date(m.date).toLocaleString(),
+                                    quantity: prod.quantity,
+                                    price: prod.price,
+                                    total: prod.quantity * prod.price,
+                                    paymentMethod: m.paymentMethod,
+                                    concept: m.concept,
+                                });
+                            });
+                        }
+                    }
+                    if (m.type === "egreso") {
+                        if (m.products && m.products.length > 0) {
+                            m.products.forEach((prod) => {
+                                egresosProcesados.push({
+                                    type: "egreso",
+                                    _id: m._id,
+                                    name: m.concept,
+                                    date: new Date(m.date).toLocaleString(),
+                                    quantity: prod.quantity,
+                                    price: prod.price || 0,
+                                    total: m.amount || 0,
+                                    paymentMethod: m.paymentMethod,
+                                    concept: m.concept,
+                                });
+                            });
+                        }
+                    }
+                });
+                // Actualizo los arrays del componente
+                this.ventas = ventasProcesadas;
+                this.egresos = egresosProcesados;
+                this.isOpen = true;
+                this.openAmount = activeCash.initialAmount;
+            }
+        },
         async startScanner() {
             this.scannerVisible = true;
             await nextTick();
@@ -116,10 +159,12 @@ export default defineComponent({
         },
         async loadProducts() {
             this.products = await getProducts();
+            console.log(this.products);
         },
         selectProduct() {
             this.saleProduct = this.products.find((p) => p.barcode === this.saleBarcodeOrName ||
                 p.name.toLowerCase() === this.saleBarcodeOrName.toLowerCase()) || null;
+            console.log("select", this.saleProduct);
         },
         async abrirCaja() {
             try {
@@ -134,32 +179,61 @@ export default defineComponent({
         },
         async addVenta() {
             if (!this.saleProduct)
-                return;
+                return alert("Debe seleccionar un producto");
             if (this.saleQuantity > this.saleProduct.stock) {
                 return alert(`No hay suficiente stock. Disponible: ${this.saleProduct.stock}`);
             }
+            if (!this.paymentMethod) {
+                return alert("Debe seleccionar un medio de pago");
+            }
             try {
-                const updatedCash = await registerMovement("ingreso", this.saleQuantity * this.saleProduct.price, "efectivo", `Venta de ${this.saleProduct.name}`);
-                this.ventas = updatedCash.movements.filter((m) => m.type === "ingreso");
-                this.egresos = updatedCash.movements.filter((m) => m.type === "egreso");
-                this.saleProduct.stock -= this.saleQuantity;
-                this.saleBarcodeOrName = "";
+                const saleData = {
+                    type: "ingreso",
+                    amount: this.saleQuantity * this.saleProduct.price,
+                    paymentMethod: this.paymentMethod,
+                    concept: `Venta de ${this.saleProduct.name}`,
+                    products: [
+                        {
+                            barcode: this.saleProduct.barcode,
+                            name: this.saleProduct.name,
+                            quantity: this.saleQuantity,
+                            price: this.saleProduct.price
+                        }
+                    ]
+                };
+                const updatedCash = await registerMovement(saleData);
+                this.loadTable();
+                // 🔄 Resetear el formulario
                 this.saleProduct = null;
                 this.saleQuantity = 1;
+                this.paymentMethod = "";
             }
             catch (err) {
                 alert(err.response?.data?.message || "Error al registrar la venta");
             }
         },
         async addFreeSale() {
-            if (this.freeSale.amount <= 0)
-                return alert("Ingrese un importe válido");
-            if (!this.freeSale.paymentMethod)
-                return alert("Seleccione un medio de pago");
             try {
-                const updatedCash = await registerMovement("ingreso", this.freeSaleTotal, this.freeSale.paymentMethod, this.freeSale.concept || "Venta libre");
-                this.ventas = updatedCash.movements.filter((m) => m.type === "ingreso");
-                this.egresos = updatedCash.movements.filter((m) => m.type === "egreso");
+                if (this.freeSale.amount <= 0)
+                    return alert("Ingrese un importe válido");
+                if (!this.freeSale.paymentMethod)
+                    return alert("Seleccione un medio de pago");
+                const saleData = {
+                    type: "ingreso",
+                    amount: this.freeSaleTotal,
+                    paymentMethod: this.freeSale.paymentMethod,
+                    concept: this.freeSale.concept || "Venta libre",
+                    products: [
+                        {
+                            barcode: "0000",
+                            name: "venta libre",
+                            quantity: 1,
+                            price: this.freeSaleTotal
+                        }
+                    ]
+                };
+                const updatedCash = await registerMovement(saleData);
+                this.loadTable();
                 this.freeSale.amount = 0;
                 this.freeSale.discount = 0;
                 this.freeSale.paymentMethod = "";
@@ -177,9 +251,22 @@ export default defineComponent({
             if (!this.egreso.paymentMethod)
                 return alert("Seleccione un medio de pago");
             try {
-                const updatedCash = await registerMovement("egreso", this.egreso.amount, this.egreso.paymentMethod, this.egreso.concept);
-                this.ventas = updatedCash.movements.filter((m) => m.type === "ingreso");
-                this.egresos = updatedCash.movements.filter((m) => m.type === "egreso");
+                const saleData = {
+                    type: "egreso",
+                    amount: this.egreso.amount,
+                    paymentMethod: this.egreso.paymentMethod,
+                    concept: this.egreso.concept || "egreso",
+                    products: [
+                        {
+                            barcode: "1111",
+                            name: this.egreso.concept || "egreso",
+                            quantity: 1,
+                            price: this.egreso.amount
+                        }
+                    ]
+                };
+                const updatedCash = await registerMovement(saleData);
+                this.loadTable();
                 this.egreso.amount = 0;
                 this.egreso.paymentMethod = "";
                 this.egreso.concept = "";
@@ -198,8 +285,7 @@ export default defineComponent({
                 return alert("No se puede eliminar este movimiento");
             try {
                 const updatedCash = await deleteMovement(movimiento._id);
-                this.ventas = updatedCash.movements.filter((m) => m.type === "ingreso");
-                this.egresos = updatedCash.movements.filter((m) => m.type === "egreso");
+                this.loadTable();
             }
             catch (err) {
                 alert(err.response?.data?.message || "Error al eliminar el movimiento");
@@ -235,6 +321,7 @@ const __VLS_componentsOption = {
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['scanner-modal']} */ ;
+/** @type {__VLS_StyleScopedClasses['table']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -358,7 +445,7 @@ if (__VLS_ctx.showSaleForm) {
         ...{ class: "row g-2 align-items-center" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "col-6 col-md-6" },
+        ...{ class: "col-12 col-md-3" },
     });
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         for: "barcodeInput",
@@ -452,6 +539,37 @@ if (__VLS_ctx.showSaleForm) {
     });
     // @ts-ignore
     [subtotalVenta,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "col-12 col-md-3" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+        ...{ class: "form-label" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.select, __VLS_elements.select)({
+        value: (__VLS_ctx.paymentMethod),
+        ...{ class: "form-select form-select-sm" },
+    });
+    // @ts-ignore
+    [paymentMethod,];
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "",
+        disabled: true,
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "efectivo",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "tarjeta",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "mercadopago",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "qr",
+    });
+    __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
+        value: "otros",
+    });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "col-12 d-grid mt-2" },
     });
@@ -652,19 +770,6 @@ if (__VLS_ctx.showEgresoForm) {
     __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
         ...{ class: "form-label" },
     });
-    __VLS_asFunctionalElement(__VLS_elements.input)({
-        type: "text",
-        value: (__VLS_ctx.egreso.concept),
-        ...{ class: "form-control form-control-sm" },
-    });
-    // @ts-ignore
-    [egreso,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "col-6 col-md-4" },
-    });
-    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
-        ...{ class: "form-label" },
-    });
     __VLS_asFunctionalElement(__VLS_elements.select, __VLS_elements.select)({
         value: (__VLS_ctx.egreso.paymentMethod),
         ...{ class: "form-select form-select-sm" },
@@ -690,6 +795,19 @@ if (__VLS_ctx.showEgresoForm) {
     __VLS_asFunctionalElement(__VLS_elements.option, __VLS_elements.option)({
         value: "otros",
     });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "col-6 col-md-4" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.label, __VLS_elements.label)({
+        ...{ class: "form-label" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.input)({
+        type: "text",
+        value: (__VLS_ctx.egreso.concept),
+        ...{ class: "form-control form-control-sm" },
+    });
+    // @ts-ignore
+    [egreso,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "col-12 d-grid mt-2" },
     });
@@ -728,6 +846,7 @@ if (__VLS_ctx.ventas.length || __VLS_ctx.egresos.length) {
         [ventas, egresos,];
         __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({
             key: (v._id || idx),
+            ...{ class: (v.type === 'egreso' ? 'row-egreso' : 'row-ingreso') },
         });
         __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({});
         (v.name || v.concept);
@@ -939,8 +1058,8 @@ if (__VLS_ctx.showCloseModal) {
 /** @type {__VLS_StyleScopedClasses['row']} */ ;
 /** @type {__VLS_StyleScopedClasses['g-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['align-items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['col-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['col-md-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['col-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['col-md-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-control']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-control-sm']} */ ;
@@ -959,6 +1078,11 @@ if (__VLS_ctx.showCloseModal) {
 /** @type {__VLS_StyleScopedClasses['form-label']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-control']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-control-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['col-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['col-md-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-label']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-select-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['col-12']} */ ;
 /** @type {__VLS_StyleScopedClasses['d-grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
@@ -1034,13 +1158,13 @@ if (__VLS_ctx.showCloseModal) {
 /** @type {__VLS_StyleScopedClasses['col-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['col-md-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-label']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-control']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-control-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-select']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-select-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['col-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['col-md-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['form-label']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-select']} */ ;
-/** @type {__VLS_StyleScopedClasses['form-select-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-control']} */ ;
+/** @type {__VLS_StyleScopedClasses['form-control-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['col-12']} */ ;
 /** @type {__VLS_StyleScopedClasses['d-grid']} */ ;
 /** @type {__VLS_StyleScopedClasses['mt-2']} */ ;

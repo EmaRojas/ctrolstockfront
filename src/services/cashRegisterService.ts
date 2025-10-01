@@ -1,7 +1,7 @@
 // services/cashRegisterService.ts
 import axios from "axios";
 
-const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app/cashRegister"; // 🔁 ajustá el puerto si es distinto
+const API_URL = "http://localhost:3000/cashRegister"; // 🔁 ajustá el puerto si es distinto
 
 // 🟢 Abrir caja
 export const openCashRegister = async (initialAmount: number, openedBy: string) => {
@@ -15,15 +15,9 @@ export const getActiveCashRegister = async () => {
     return data;
 };
 
-// 💸 Registrar movimiento (venta, ingreso, egreso, etc.)
-export const registerMovement = async (type: "ingreso" | "egreso", amount: number, paymentMethod: string, concept: string) => {
-    const { data } = await axios.post(`${API_URL}/movement`, {
-        type,
-        amount,
-        paymentMethod,
-        concept,
-    });
-    return data;
+export const registerMovement = async (movementData: any) => {
+  const res = await axios.post(`${API_URL}/movement`, movementData);
+  return res.data;
 };
 
 export async function deleteMovement(movementId: string) {

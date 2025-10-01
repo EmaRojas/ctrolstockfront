@@ -1,3 +1,3 @@
-interface ImportMeta {
-  readonly url: string;
-}
+  interface ProcessEnv {
+    URL_API: string;
+  }

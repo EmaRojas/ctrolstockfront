@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app/products";
+const API_URL = "http://localhost:3000/products";
 export const getProducts = async () => {
     const res = await axios.get(API_URL, { withCredentials: true });
     return res.data;
