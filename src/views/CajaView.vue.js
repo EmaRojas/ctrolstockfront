@@ -321,7 +321,6 @@ const __VLS_componentsOption = {
 let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['scanner-modal']} */ ;
-/** @type {__VLS_StyleScopedClasses['table']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -846,7 +845,6 @@ if (__VLS_ctx.ventas.length || __VLS_ctx.egresos.length) {
         [ventas, egresos,];
         __VLS_asFunctionalElement(__VLS_elements.tr, __VLS_elements.tr)({
             key: (v._id || idx),
-            ...{ class: (v.type === 'egreso' ? 'row-egreso' : 'row-ingreso') },
         });
         __VLS_asFunctionalElement(__VLS_elements.td, __VLS_elements.td)({});
         (v.name || v.concept);
