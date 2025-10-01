@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // const API_URL = "http://localhost:3000/cashRegister"; // 🔁 ajustá el puerto si es distinto
-const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app"
+const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app/cashRegister"
 
 
 // 🟢 Abrir caja
