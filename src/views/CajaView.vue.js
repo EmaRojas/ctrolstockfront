@@ -283,12 +283,11 @@ export default defineComponent({
         subtotalVenta() {
             return this.saleProduct ? this.saleQuantity * this.saleProduct.price : 0;
         },
-        async removeVenta(idx, type) {
-            const movimiento = type === "ingreso" ? this.ventas[idx] : this.egresos[idx];
-            if (!movimiento._id)
+        async removeVenta(moviment) {
+            if (!moviment._id)
                 return alert("No se puede eliminar este movimiento");
             try {
-                const updatedCash = await deleteMovement(movimiento._id);
+                const updatedCash = await deleteMovement(moviment._id);
                 this.loadTable();
             }
             catch (err) {
@@ -873,7 +872,7 @@ if (__VLS_ctx.ventas.length || __VLS_ctx.egresos.length) {
             ...{ onClick: (...[$event]) => {
                     if (!(__VLS_ctx.ventas.length || __VLS_ctx.egresos.length))
                         return;
-                    __VLS_ctx.removeVenta(idx, v.type);
+                    __VLS_ctx.removeVenta(v);
                     // @ts-ignore
                     [removeVenta,];
                 } },

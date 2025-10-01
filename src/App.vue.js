@@ -1,6 +1,6 @@
 import Navbar from "./components/Navbar.vue";
 import Loader from "./components/Loader.vue";
-import { useLoaderStore } from "./stores/loaderStore.js";
+import { useLoaderStore } from "./stores/loaderStore";
 export default (await import('vue')).defineComponent({
     components: { Navbar, Loader },
     setup() {
