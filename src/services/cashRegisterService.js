@@ -1,6 +1,7 @@
 // services/cashRegisterService.ts
 import axios from "axios";
-const API_URL = "http://localhost:3000/cashRegister"; // 🔁 ajustá el puerto si es distinto
+// const API_URL = "http://localhost:3000/cashRegister"; // 🔁 ajustá el puerto si es distinto
+const API_URL = "https://ctrlstockbackend-git-main-emarojas-projects.vercel.app";
 // 🟢 Abrir caja
 export const openCashRegister = async (initialAmount, openedBy) => {
     const { data } = await axios.post(`${API_URL}/open`, { initialAmount, openedBy });
