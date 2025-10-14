@@ -41,7 +41,7 @@
       <div class="row g-2 align-items-center">
         <div class="col-12 col-md-3">
           <label for="barcodeInput" class="form-label">Código o Nombre</label>
-          <input v-if="isMobile()" ref="barcodeInput" v-model="saleProduct" type="text"
+          <input v-if="isMobile()" ref="barcodeInput" :value="saleProduct ? saleProduct.barcode : ''" type="text"
             class="form-control form-control-sm" placeholder="Ej: 123456789012" :readonly="isMobile()"
             @focus.prevent="onBarcodeFocus" />
           <multiselect v-if="!isMobile()" v-model="saleProduct" :options="products" :searchable="true"

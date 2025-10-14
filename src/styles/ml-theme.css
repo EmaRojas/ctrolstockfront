@@ -1,0 +1,122 @@
+/* ================================
+   🎨 Variables Globales estilo ML
+==================================*/
+:root {
+  --ml-font: 'Roboto', 'Montserrat', Arial, sans-serif;
+  --ml-text: #333;
+  --ml-text-secondary: #666;
+  --ml-radius: 6px;
+  --ml-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --ml-shadow-hover: 0 3px 10px rgba(0, 0, 0, 0.15);
+  --ml-spacing: 12px;
+  --ml-focus: rgba(18, 89, 195, 0.2); /* Azul de MercadoLibre para fócus */
+}
+
+/* ================================
+   🔠 Tipografía y Espaciado Global
+==================================*/
+body {
+  font-family: var(--ml-font);
+  color: var(--ml-text);
+  line-height: 1.45;
+  letter-spacing: 0.2px;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 500 !important;
+  color: var(--ml-text);
+  margin-bottom: calc(var(--ml-spacing) * 1.2);
+}
+
+label, .form-label {
+  font-size: 0.9rem;
+  color: var(--ml-text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* ================================
+   🧩 Inputs estilo ML
+==================================*/
+.form-control,
+.form-select {
+  border-radius: var(--ml-radius) !important;
+  padding: 10px 12px !important;
+  border: 1px solid #ddd !important;
+  box-shadow: none !important;
+  font-size: 0.95rem !important;
+  transition: 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #1259C3 !important;
+  box-shadow: 0 0 0 3px var(--ml-focus) !important;
+}
+
+/* ================================
+   🎛 Botones estilo ML
+==================================*/
+.btn {
+  border-radius: var(--ml-radius) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  transition: 0.2s ease;
+  padding: 10px 16px !important;
+}
+
+.btn:hover {
+  box-shadow: var(--ml-shadow-hover) !important;
+}
+
+.btn-primary {
+  background: #FFE600 !important; /* Amarillo ML */
+  border: none !important;
+  color: #333 !important;
+}
+
+.btn-outline-primary {
+  border: 1px solid #1259C3 !important;
+  color: #1259C3 !important;
+}
+
+.btn-outline-primary:hover {
+  background: #1259C3 !important;
+  color: #fff !important;
+}
+
+/* ================================
+   📦 Cards estilo ML
+==================================*/
+.card {
+  border-radius: var(--ml-radius) !important;
+  box-shadow: var(--ml-shadow) !important;
+  border: none !important;
+  transition: 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--ml-shadow-hover) !important;
+}
+
+/* ================================
+   📊 Tablas estilo ML
+==================================*/
+table tr {
+  transition: 0.2s ease;
+}
+
+table tr:hover {
+  background: #f9f9f9;
+  cursor: pointer;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+}
+
+/* ================================
+   🎯 Iconos Material Rounded
+==================================*/
+.material-symbols-rounded {
+  font-size: 20px;
+  vertical-align: middle;
+  margin-right: 4px;
+}

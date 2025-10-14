@@ -1,97 +1,106 @@
 <template>
   <div class="container mt-4">
-
     <!-- Header + Botón Agregar -->
     <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
       <h2 class="h4 mb-2 mb-md-0">Productos</h2>
-      <button class="btn btn-primary d-flex align-items-center" @click="toggleForm">
-        <i class="bi" :class="showForm ? 'bi-x-lg' : 'bi-plus-lg'"></i>
-        <span class="ms-2 d-none d-md-inline">{{ showForm ? 'Cancelar' : 'Agregar' }}</span>
-      </button>
+
+      <BaseButton
+        variant="primary"
+        icon="add"
+        @click="toggleForm"
+      >
+        {{ showForm ? 'Cancelar' : 'Agregar' }}
+      </BaseButton>
     </div>
 
     <!-- Formulario ABM -->
-    <div v-if="showForm" class="card p-3 mb-3 shadow-sm">
+    <BaseCard v-if="showForm" class="p-3 mb-3">
       <form @submit.prevent="saveProduct" class="row g-2">
-        <div class="col-12 col-md-6">
-          <label class="form-label small">Código de Barra</label>
-          <input ref="barcodeInput" v-model="form.barcode" type="text" class="form-control form-control-sm"
-            placeholder="Ej: 123456789012" :readonly="isMobile()" @focus.prevent="onBarcodeFocus" />
+        <div class="col-12 col-md-3">
+          <BaseInput
+            v-model="form.barcode"
+            label="Código de Barra"
+            placeholder="Ej: 123456789012"
+            icon="qr_code_scanner"
+            type="text"
+            :readonly="isMobile()"
+            @focus.prevent="onBarcodeFocus"
+          />
         </div>
-        <div class="col-12 col-md-6">
-          <label class="form-label small">Nombre</label>
-          <input v-model="form.name" type="text" class="form-control form-control-sm" placeholder="Ej: Lápiz" />
+
+        <div class="col-12 col-md-3">
+          <BaseInput
+            v-model="form.name"
+            label="Nombre"
+            placeholder="Ej: Lápiz"
+            icon="edit"
+          />
         </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label small">Precio</label>
-          <input v-model.number="form.price" type="number" class="form-control form-control-sm" />
+
+        <div class="col-6 col-md-2">
+          <BaseInput
+            v-model.number="form.price"
+            label="Precio"
+            type="number"
+            icon="attach_money"
+          />
         </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label small">Stock</label>
-          <input v-model.number="form.stock" type="number" class="form-control form-control-sm" />
+
+        <div class="col-6 col-md-1">
+          <BaseInput
+            v-model.number="form.stock"
+            label="Stock"
+            type="number"
+            icon="inventory_2"
+          />
         </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label small">Costo</label>
-          <input v-model.number="form.cost" type="number" class="form-control form-control-sm" />
+
+        <div class="col-6 col-md-1">
+          <BaseInput
+            v-model.number="form.cost"
+            label="Costo"
+            type="number"
+            icon="payments"
+          />
         </div>
-        <div class="col-6 col-md-3 d-grid">
-          <button type="submit" class="btn btn-success btn-sm mt-4">
-            <i class="bi bi-check2-circle"></i> Guardar
-          </button>
+
+        <div class="col-6 col-md-2 d-grid">
+          <BaseButton variant="primary" icon="check_circle" type="submit" class="mt-4 mb-3">
+            Guardar
+          </BaseButton>
         </div>
       </form>
-    </div>
+    </BaseCard>
 
     <!-- Escáner de código de barra móvil -->
     <div v-if="scannerVisible" class="scanner-modal">
       <video ref="videoPreview" autoplay muted playsinline></video>
 
-      <!-- Recuadro animado -->
       <div class="scanner-overlay">
         <div class="scan-line"></div>
       </div>
 
-      <button class="btn btn-danger mt-2" @click="stopScanner">
-        <i class="bi bi-x-circle"></i> Cancelar
-      </button>
+      <BaseButton variant="outline" icon="cancel" class="mt-3" @click="stopScanner">
+        Cancelar
+      </BaseButton>
     </div>
 
     <!-- Tabla de productos -->
-    <table class="table table-hover align-middle small">
-      <thead class="table-light">
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Precio</th>
-          <th>Stock</th>
-          <th>Costo</th>
-          <th class="text-center">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="p in products" :key="p._id">
-          <td>{{ p.barcode }}</td>
-          <td>{{ p.name }}</td>
-          <td>{{ formatCurrency(p.price) }}</td>
-          <td>{{ p.stock }}</td>
-          <td>{{ formatCurrency(p.cost) }}</td>
-          <td class="text-center">
-            <button class="btn btn-link p-1 text-warning" @click="editProduct(p)">
-              <i class="bi bi-pencil-fill"></i>
-            </button>
-            <button class="btn btn-link p-1 text-danger" @click="removeProduct(p._id)">
-              <i class="bi bi-trash-fill"></i>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="tableColumns"
+      :rows="products"
+      @edit="editProduct"
+      @delete="removeProduct"
+    />
 
     <!-- Botón flotante en móviles -->
-    <button v-if="!showForm && isMobile()"
-      class="btn btn-primary btn-float d-flex align-items-center justify-content-center" @click="toggleForm">
-      <i class="bi bi-plus-lg"></i>
-    </button>
+    <BaseButton
+      v-if="!showForm && isMobile()"
+      variant="primary"
+      icon="add"
+      class="btn-float"
+      @click="toggleForm"
+    />
   </div>
 </template>
 
@@ -101,8 +110,15 @@ import { BrowserBarcodeReader } from "@zxing/library";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../services/productService";
 import { useLoaderStore } from '../stores/loaderStore.js';
 
+// Componentes base
+import BaseInput from "../components/BaseInput.vue";
+import BaseButton from "../components/BaseButton.vue";
+import BaseCard from "../components/BaseCard.vue";
+import BaseTable from "../components/BaseTable.vue";
+
 export default defineComponent({
   name: "ProductosView",
+  components: { BaseInput, BaseButton, BaseCard, BaseTable },
   data() {
     return {
       products: [] as any[],
@@ -110,6 +126,13 @@ export default defineComponent({
       scannerVisible: false,
       scanner: null as any,
       form: { barcode: "", name: "", price: 0, stock: 0, cost: 0, _id: null } as any,
+      tableColumns: [
+        { label: "Código", field: "barcode" },
+        { label: "Nombre", field: "name" },
+        { label: "Precio", field: "price" },
+        { label: "Stock", field: "stock" },
+        { label: "Costo", field: "cost" }
+      ]
     };
   },
   async mounted() {
@@ -117,7 +140,6 @@ export default defineComponent({
     loader.show();
     await this.loadProducts();
     loader.hide();
-
   },
   methods: {
     async loadProducts() {
@@ -128,7 +150,8 @@ export default defineComponent({
       if (this.showForm) {
         nextTick(() => {
           if (!this.isMobile()) {
-            (this.$refs.barcodeInput as HTMLInputElement).focus();
+            const input = document.querySelector("input[placeholder='Ej: 123456789012']") as HTMLInputElement;
+            input?.focus();
           }
         });
       } else {
@@ -151,29 +174,24 @@ export default defineComponent({
       await this.loadProducts();
       this.toggleForm();
     },
-    async removeProduct(id: string) {
+    async removeProduct(product: any) {
       if (confirm("¿Seguro que quieres eliminar este producto?")) {
-        await deleteProduct(id);
+        await deleteProduct(product._id);
         await this.loadProducts();
       }
     },
-
     // ----------------- SCANNER -----------------
     isMobile() {
       return /Mobi|Android/i.test(navigator.userAgent);
     },
     onBarcodeFocus() {
-      if (this.isMobile()) {
-        this.startScanner();
-      }
+      if (this.isMobile()) this.startScanner();
     },
     async startScanner() {
       this.scannerVisible = true;
       await nextTick();
-
       const codeReader = new BrowserBarcodeReader();
       this.scanner = codeReader;
-
       codeReader
         .decodeOnceFromVideoDevice(undefined, this.$refs.videoPreview as HTMLVideoElement)
         .then(result => {
@@ -189,7 +207,6 @@ export default defineComponent({
       }
       this.scannerVisible = false;
     },
-
     // ----------------- UTILIDADES -----------------
     formatCurrency(value: number) {
       return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(value);
@@ -245,13 +262,8 @@ export default defineComponent({
 }
 
 @keyframes scanAnim {
-  0% {
-    top: 0;
-  }
-
-  100% {
-    top: 100%;
-  }
+  0% { top: 0; }
+  100% { top: 100%; }
 }
 
 /* Botón flotante móvil */
